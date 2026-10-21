@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+<meta name="theme-color" content="#0b1026" />
+<meta name="description" content="戴头盔墨镜、系红围巾的鹈鹕，在海岸公路上骑车抓鱼。黄昏到星空月夜的昼夜循环，布料模拟围巾，实时合成音乐。" />
+<title>鹈鹕海岸 · 追鱼 Pelican Coast Go</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%A6%A9%3C/text%3E%3C/svg%3E" />
+<link rel="stylesheet" href="./src/style.css" />
+<link rel="preconnect" href="https://lib.baomitu.com" crossorigin />
+<link rel="dns-prefetch" href="https://lib.baomitu.com" />
+<link rel="preconnect" href="https://unpkg.com" crossorigin />
+<!--
+  Three.js is loaded through a tiny boot loader instead of a static import map:
+  the 3D engine is ~687 kB and some hosts reset long transfers, so we probe a few
+  mirrors (China-first), verify the payload is complete, then inject the import map
+  and start the game. Everything else (src/, vendor addons) is served next to this page.
+-->
+</head>
+<body>
+  <div id="stage"><canvas id="gl" aria-label="鹈鹕海岸游戏画面"></canvas></div>
+  <div id="vignette"></div>
+  <div id="hud-layer"></div>
+  <div id="overlay-layer"></div>
+
+  <div id="boot-screen">
+    <div class="boot-inner">
+      <div class="boot-mark">🦩</div>
+      <div class="boot-title">鹈鹕海岸</div>
+      <div class="boot-bar"><i></i></div>
+      <div class="boot-status" id="boot-status">正在铺好海岸公路…</div>
+    </div>
+  </div>
+
+  <div id="title-screen" hidden>
+    <div class="title-card">
+      <div class="title-kicker">海岸公路 · 追鱼</div>
+      <h1 class="title-main">鹈鹕<span>海岸</span> Go</h1>
+      <p class="title-sub">戴头盔墨镜、系着红围巾的鹈鹕，在黄昏的海岸公路上骑车抓鱼。<br/>太阳落下，星星亮起，别停下踩踏。</p>
+      <div class="title-actions">
+        <button id="btn-start" class="btn-primary">出 发 <span class="keycap">Enter</span></button>
+        <button id="btn-touch-start" class="btn-ghost" title="触屏模式">触屏模式</button>
+      </div>
+      <div class="controls-grid">
+        <div><b>W / S</b><span>加速 / 减速</span></div>
+        <div><b>A / D</b><span>变道抓鱼</span></div>
+        <div><b>空格</b><span>跳跃</span></div>
+        <div><b>T</b><span>展翅 + 抬前轮</span></div>
+        <div><b>C</b><span>切换镜头（5 种）</span></div>
+        <div><b>K</b><span>成就面板</span></div>
+        <div><b>M</b><span>静音</span></div>
+        <div><b>P</b><span>暂停</span></div>
+      </div>
+      <p class="title-foot">音乐与音效由浏览器实时合成 · 节奏跟随踏频 · 不操作时自动驾驶追鱼</p>
+    </div>
+    <div class="title-sun"></div>
+  </div>
+
+  <noscript><div class="noscript">这个游戏需要启用 JavaScript。</div></noscript>
+
+  <script>
+  /* ---------------------------------------------------------------------------
+     Three.js boot loader (see <head> note).
+     1. probe mirrors in order (China CDN first), each with a hard timeout;
+     2. only accept a payload that is complete (>600 kB) and really is three.js;
+     3. inject the import map (so every ES module resolves "three") and then the game.
+     --------------------------------------------------------------------------- */
+  (function bootThree() {
+    'use strict';
+    var VERSION = '0.169.0';
+    var statusEl = document.getElementById('boot-status');
+    function setStatus(t) { if (statusEl) statusEl.textContent = t; }
+
+    var MIRRORS = [
+      'https://lib.baomitu.com/three.js/' + VERSION + '/three.module.min.js',
+      'https://unpkg.com/three@' + VERSION + '/build/three.module.min.js',
+      'https://fastly.jsdelivr.net/npm/three@' + VERSION + '/build/three.module.min.js',
+      'https://cdn.jsdelivr.net/npm/three@' + VERSION + '/build/three.module.min.js'
+    ];
+    var LOCAL_MIRROR = './vendor/three/three.module.min.js';
+
+    function probe(url, timeoutMs) {
+      return new Promise(function (resolve) {
+        var ctrl = ('AbortController' in window) ? new AbortController() : null;
+        var done = false;
+        var timer = setTimeout(function () {
+          if (done) return;
+          done = true;
+          if (ctrl) { try { ctrl.abort(); } catch (e) {} }
+          resolve(false);
+        }, timeoutMs);
+        var opts = { mode: 'cors', credentials: 'omit' };
+        if (ctrl) opts.signal = ctrl.signal;
+        fetch(url, opts).then(function (res) {
+          if (!res.ok) throw new Error('http ' + res.status);
+          return res.text();
+        }).then(function (text) {
+          if (done) return;
+          done = true;
+          clearTimeout(timer);
+          // a truncated download would still "succeed" on some hosts: validate size + marker
+          resolve(text.length > 600000 && text.indexOf('REVISION') !== -1);
+        }).catch(function () {
+          if (done) return;
+          done = true;
+          clearTimeout(timer);
+          resolve(false);
+        });
+      });
+    }
+
+    function start(engineUrl) {
+      var map = document.createElement('script');
+      map.type = 'importmap';
+      map.textContent = JSON.stringify({
+        imports: { 'three': engineUrl, 'three/addons/': './vendor/three/addons/' }
+      });
+      document.head.appendChild(map);
+      var game = document.createElement('script');
+      game.type = 'module';
+      game.src = './src/main.js';
+      document.body.appendChild(game);
+    }
+
+    (async function () {
+      setStatus('正在加载 3D 引擎…');
+      for (var i = 0; i < MIRRORS.length; i++) {
+        if (await probe(MIRRORS[i], 6000)) { start(MIRRORS[i]); return; }
+      }
+      setStatus('正在从备用地址加载 3D 引擎…');
+      if (await probe(LOCAL_MIRROR, 25000)) { start(LOCAL_MIRROR); return; }
+      setStatus('3D 引擎加载失败：请检查网络后刷新页面');
+    })();
+  })();
+  </script>
+</body>
+</html>
