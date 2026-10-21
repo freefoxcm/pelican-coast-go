@@ -23,11 +23,17 @@ const numParam = (k, d) => {
   const v = parseFloat(params.get(k));
   return Number.isFinite(v) ? v : d;
 };
-const forcedQuality = params.has('quality')
-  ? clamp(parseInt(qp('quality'), 10) || 0, 0, 2)
-  : qp('pp') === '0'
-    ? 2 // ?pp=0 → disable post-processing for A/B testing on problem GPUs
-    : null;
+const forcedQuality = params.has('quality') ? clamp(parseInt(qp('quality'), 10) || 0, 0, 2) : null;
+// ---------------------------------------------------------------- post-processing policy
+// EffectComposer + UnrealBloomPass produce a giant black rectangle on some macOS
+// Chrome/ANGLE(Metal) builds (the composer's HDR render targets resolve badly there).
+// Everything else renders fine, so on macOS we simply skip post-processing and keep
+// full resolution + shadows. Override with ?pp=1 (force on) / ?pp=0 (force off).
+const uaPlatform =
+  (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+const isMacOS = /mac/i.test(uaPlatform) && (navigator.maxTouchPoints || 0) <= 1;
+const postParam = qp('pp');
+const POST_ALLOWED = postParam === '1' ? true : postParam === '0' ? false : !isMacOS;
 const isCoarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
 const isSmall = Math.min(window.innerWidth, window.innerHeight) < 700;
 const bootQuality = forcedQuality ?? (isCoarse || isSmall ? 1 : 0);
@@ -73,10 +79,25 @@ function resize() {
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
   if (composer) {
+    // EffectComposer already forwards the (device-pixel) size to every pass, so the
+    // bloom pass must NOT be resized separately (that used to desync its mips).
     composer.setPixelRatio(pxScale);
     composer.setSize(w, h);
   }
-  if (bloom) bloom.setSize(w, h);
+}
+
+// Post-processing is skipped on macOS Chrome (composer HDR targets black out there).
+function postEnabled() {
+  return POST_ALLOWED && state.quality < 2;
+}
+
+function buildComposer() {
+  composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene, camera));
+  bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.35, 0.55, 0.85);
+  composer.addPass(bloom);
+  composer.addPass(new OutputPass());
+  resize();
 }
 
 // ---------------------------------------------------------------- scene
@@ -248,13 +269,7 @@ function build() {
   // post processing
   composer = null;
   bloom = null;
-  if (state.quality < 2) {
-    composer = new EffectComposer(renderer);
-    composer.addPass(new RenderPass(scene, camera));
-    bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.35, 0.55, 0.85);
-    composer.addPass(bloom);
-    composer.addPass(new OutputPass());
-  }
+  if (postEnabled()) buildComposer();
   resize();
   syncCameraHud();
 }
@@ -354,15 +369,11 @@ function applyQuality(level) {
       if (o.isMesh) o.castShadow = level < 2;
     });
   }
-  if (level === 2) {
+  if (!postEnabled()) {
     composer = null;
     bloom = null;
   } else if (!hadComposer) {
-    composer = new EffectComposer(renderer);
-    composer.addPass(new RenderPass(scene, camera));
-    bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.35, 0.55, 0.85);
-    composer.addPass(bloom);
-    composer.addPass(new OutputPass());
+    buildComposer();
   }
   resize();
   try {
@@ -553,7 +564,7 @@ function orbitCameraPreStart() {
 }
 
 function render() {
-  if (composer && state.quality < 2) composer.render();
+  if (composer && postEnabled()) composer.render();
   else renderer.render(scene, camera);
 }
 
@@ -760,6 +771,7 @@ window.__PELICAN__ = {
       achievements: state.achievements.filter((a) => a.unlocked).length,
       total: state.achievements.length, autopilot: state.autopilot, started: state.started,
       paused: state.paused, bpm: audio?.bpm, audioReady: audio?.ready,
+      post: !!(composer && postEnabled()), mac: isMacOS, postAllowed: POST_ALLOWED,
       drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles,
       programs: renderer.info.programs ? renderer.info.programs.length : null,
       paint: { laneX: state.laneX, jumpY: state.jumpY, wheelie: state.wheelie, wingsOut: state.wingsOut },
@@ -798,6 +810,7 @@ if (autoStart) {
   const update = () => {
     el.textContent =
       'GPU: ' + gpu + '\n' +
+      'platform: ' + uaPlatform + '   macOS: ' + isMacOS + '   post allowed: ' + POST_ALLOWED + '\n' +
       'DPR: ' + (window.devicePixelRatio || 1) + '   viewport: ' + window.innerWidth + '×' + window.innerHeight + '\n' +
       'canvas css: ' + canvas.clientWidth + '×' + canvas.clientHeight + '   buffer: ' + canvas.width + '×' + canvas.height + '\n' +
       'quality: ' + state.quality + '   postprocessing: ' + (composer ? 'ON' : 'OFF') + '   bloom: ' + (bloom ? 'ON' : 'OFF') + '\n' +
