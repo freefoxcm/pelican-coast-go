@@ -1738,7 +1738,8 @@ export function createPelican(scene) {
     frontWheel.spin.rotation.x = wheelAngle;
     rearWheel.spin.rotation.x = wheelAngle;
     const groundFactor = airborne ? 0.12 : 1;
-    crankAngle += (0.9 + cadence * 7.2) * dt * groundFactor;
+    // 前进方向为 -Z：车轮与曲柄必须同向（都是负向绕 X 旋转），否则会看起来在「倒蹬」
+    crankAngle -= (0.9 + cadence * 7.2) * dt * groundFactor;
     if (crankAngle > TAU) crankAngle -= TAU;
     if (crankAngle < 0) crankAngle += TAU;
     crankR.rotation.x = crankAngle;
