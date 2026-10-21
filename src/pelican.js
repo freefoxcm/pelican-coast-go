@@ -760,9 +760,9 @@ export function createPelican(scene) {
   // （去掉额头的眉骨体块，保持脸部干净）
   // 下巴 / 喉部过渡（避免脖子像直接插进球里）
   headCream.push(gTRS(sphGeo(1, 14, 10), 0.090, 0.064, 0.078, 0.18, 0, 0, 0, 0.058, -0.168));
-  // 眼睛高光（奶白小点，落在深色眼珠左上；眼睛在镜片后方，高光自然也藏起来）
+  // 眼睛高光（随眼珠一起藏在镜片后，正面不可见）
   for (let s = -1; s <= 1; s += 2) {
-    headCream.push(gTRS(sphGeo(1, 8, 6), 0.0052, 0.0052, 0.005, 0, 0, 0, s * 0.066 - 0.0062, 0.2325, -0.3365));
+    headCream.push(gTRS(sphGeo(1, 8, 6), 0.0052, 0.0052, 0.005, 0, 0, 0, s * 0.066 - 0.0062, 0.2185, -0.2925));
   }
   const headCreamMesh = new THREE.Mesh(mergeGeos(headCream), matFeather);
   headGroup.add(headCreamMesh);
@@ -814,8 +814,8 @@ export function createPelican(scene) {
   const darkDetails = [];
   const beakDarkParts = [];
   for (let s = -1; s <= 1; s += 2) {
-    // 小黑豆眼睛（藏在镜片后方：墨镜必须挡住眼睛，不再露在镜片上沿）
-    darkDetails.push(gTRS(sphGeo(1, 14, 10), 0.019, 0.019, 0.019, 0, 0, 0, s * 0.066, 0.226, -0.330));
+    // 小黑豆眼睛（完全藏在镜片后方/头内：墨镜负责遮住眼睛，正面不再露眼珠）
+    darkDetails.push(gTRS(sphGeo(1, 14, 10), 0.019, 0.019, 0.019, 0, 0, 0, s * 0.066, 0.212, -0.286));
     // 嘴缝（沿喙两侧贯通到尖端；起点从喙根前移到喙身上，避免看起来像脸颊裂纹）
     beakDarkParts.push(geoBetween(s * 0.101, 0.068, -0.302, s * 0.086, 0.030, -0.530, 0.0036, 0.0032, 4));
     beakDarkParts.push(geoBetween(s * 0.086, 0.030, -0.530, s * 0.036, -0.012, -0.790, 0.0032, 0.0028, 4));
