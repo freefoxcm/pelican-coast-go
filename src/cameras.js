@@ -325,19 +325,19 @@ export function createCameras(camera, domElement) {
     const jump = num(st.jumpY, 0);
     const lean = clamp(num(st.lean, 0), -1, 1);
     const e = smoothstep(0, 1, tau);
-    const ahead = lerp(3.7, 0.5, e) * (0.92 + s * 0.22);
-    const lateral = lerp(-4.75, -3.35, e);
+    const ahead = lerp(5.0, 1.8, e) * (0.92 + s * 0.22);
+    const lateral = lerp(-6.0, -4.6, e);
     targetPos.set(
       safeLowX(num(st.laneX, 0) + lateral, 0.9),
-      0.84 + jump * 0.34,
+      0.92 + jump * 0.34,
       num(st.bikeZ, 0) - ahead
     );
     look.copy(chest);
-    look.y += 0.46 + jump * 0.08;
+    look.y += 0.40 + jump * 0.08;
     look.x += lean * 0.35;
     look.z -= 0.4;
     aimAt(targetPos, look, -0.035, 0.018, -lean * 0.02 * motionScale());
-    targetFov = lerp(42, 35, e);
+    targetFov = lerp(40, 33, e);
   }
 
   function shotFrontLow(st, tau, s) {
