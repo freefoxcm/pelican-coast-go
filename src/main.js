@@ -23,7 +23,11 @@ const numParam = (k, d) => {
   const v = parseFloat(params.get(k));
   return Number.isFinite(v) ? v : d;
 };
-const forcedQuality = params.has('quality') ? clamp(parseInt(qp('quality'), 10) || 0, 0, 2) : null;
+const forcedQuality = params.has('quality')
+  ? clamp(parseInt(qp('quality'), 10) || 0, 0, 2)
+  : qp('pp') === '0'
+    ? 2 // ?pp=0 → disable post-processing for A/B testing on problem GPUs
+    : null;
 const isCoarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
 const isSmall = Math.min(window.innerWidth, window.innerHeight) < 700;
 const bootQuality = forcedQuality ?? (isCoarse || isSmall ? 1 : 0);
@@ -769,4 +773,39 @@ window.__PELICAN__ = {
 if (autoStart) {
   setTimeout(() => start(), 60);
 }
+// ---------------------------------------------------------------- diagnostics
+// ?diag=1 → small overlay with GPU / canvas / post-processing facts. Handy when a
+// machine renders something unexpected (e.g. black regions on macOS Chrome).
+// ?pp=0   → force post-processing off (same as quality=2) for A/B tests.
+(function setupDiagnostics() {
+  if (qp('diag') !== '1') return;
+  const el = document.createElement('div');
+  el.style.cssText =
+    'position:fixed;left:8px;top:8px;z-index:99999;max-width:min(560px,94vw);padding:8px 10px;' +
+    'border-radius:10px;background:rgba(0,0,0,.8);color:#b6f5d8;font:11px/1.55 ui-monospace,Menlo,Consolas,monospace;' +
+    'white-space:pre-wrap;pointer-events:none;';
+  document.body.appendChild(el);
+  let gpu = 'unknown';
+  try {
+    const gl = renderer.getContext();
+    const ext = gl.getExtension('WEBGL_debug_renderer_info');
+    gpu = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+  } catch (e) { gpu = 'n/a'; }
+  const canvas = renderer.domElement;
+  let lost = false;
+  canvas.addEventListener('webglcontextlost', (e) => { lost = true; e.preventDefault(); });
+  canvas.addEventListener('webglcontextrestored', () => { lost = false; });
+  const update = () => {
+    el.textContent =
+      'GPU: ' + gpu + '\n' +
+      'DPR: ' + (window.devicePixelRatio || 1) + '   viewport: ' + window.innerWidth + '×' + window.innerHeight + '\n' +
+      'canvas css: ' + canvas.clientWidth + '×' + canvas.clientHeight + '   buffer: ' + canvas.width + '×' + canvas.height + '\n' +
+      'quality: ' + state.quality + '   postprocessing: ' + (composer ? 'ON' : 'OFF') + '   bloom: ' + (bloom ? 'ON' : 'OFF') + '\n' +
+      'fps: ' + Math.round(state.fps) + '   draws: ' + renderer.info.render.calls + '   tris: ' + (renderer.info.render.triangles / 1000).toFixed(0) + 'k\n' +
+      'context lost: ' + lost;
+  };
+  update();
+  setInterval(update, 500);
+})();
+
 console.log('[pelican] booted');

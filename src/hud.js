@@ -172,12 +172,16 @@ const CSS = `
 .hud-intro-keys kbd{font-family:inherit;font-size:8.5px;font-weight:700;min-width:15px;padding:2px 5px;border-radius:5px;text-align:center;color:#ffe6c4;background:rgba(255,255,255,.07);border:1px solid rgba(255,227,190,.2);}
 
 /* ------------------------------------------------ flash */
-.hud-flash{position:absolute;inset:0;z-index:12;opacity:0;pointer-events:none;mix-blend-mode:screen;transition:opacity .34s ease;}
+/* NOTE: intentionally no mix-blend-mode here. Compositing a DOM layer with
+   mix-blend-mode (screen) over a WebGL canvas makes the canvas backdrop render
+   black on some macOS Chrome/ANGLE builds (giant black rectangle). Plain alpha
+   compositing is portable and looks practically identical. */
+.hud-flash{position:absolute;inset:0;z-index:12;opacity:0;pointer-events:none;transition:opacity .34s ease;}
 .hud-flash.hud-flash-on{opacity:1;transition-duration:.06s;}
-.hud-flash-catch{background:radial-gradient(58% 48% at 50% 56%,rgba(46,196,182,.42),transparent 72%);}
-.hud-flash-jump{background:radial-gradient(70% 62% at 50% 52%,rgba(226,240,255,.22),transparent 72%);}
-.hud-flash-ach{background:radial-gradient(70% 62% at 50% 52%,rgba(255,179,107,.4),transparent 74%);}
-.hud-flash-info{background:radial-gradient(70% 62% at 50% 52%,rgba(120,160,255,.18),transparent 74%);}
+.hud-flash-catch{background:radial-gradient(58% 48% at 50% 56%,rgba(46,196,182,.30),rgba(46,196,182,.08) 52%,transparent 76%);}
+.hud-flash-jump{background:radial-gradient(70% 62% at 50% 52%,rgba(226,240,255,.20),rgba(226,240,255,.05) 50%,transparent 74%);}
+.hud-flash-ach{background:radial-gradient(70% 62% at 50% 52%,rgba(255,179,107,.28),rgba(255,179,107,.07) 52%,transparent 76%);}
+.hud-flash-info{background:radial-gradient(70% 62% at 50% 52%,rgba(120,160,255,.16),rgba(120,160,255,.04) 50%,transparent 76%);}
 
 /* ------------------------------------------------ achievements */
 .hud-ach-backdrop{position:absolute;inset:0;z-index:6;background:rgba(3,6,18,.45);backdrop-filter:blur(2px);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .26s ease,visibility .26s;}
