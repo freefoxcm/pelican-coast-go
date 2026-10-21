@@ -760,9 +760,9 @@ export function createPelican(scene) {
   // （去掉额头的眉骨体块，保持脸部干净）
   // 下巴 / 喉部过渡（避免脖子像直接插进球里）
   headCream.push(gTRS(sphGeo(1, 14, 10), 0.090, 0.064, 0.078, 0.18, 0, 0, 0, 0.058, -0.168));
-  // 眼睛高光（奶白小点，落在深色眼珠左上，两眼同侧更可爱）
+  // 眼睛高光（奶白小点，落在深色眼珠左上；眼睛在镜片后方，高光自然也藏起来）
   for (let s = -1; s <= 1; s += 2) {
-    headCream.push(gTRS(sphGeo(1, 8, 6), 0.0052, 0.0052, 0.005, 0, 0, 0, s * 0.066 - 0.0062, 0.2645, -0.3405));
+    headCream.push(gTRS(sphGeo(1, 8, 6), 0.0052, 0.0052, 0.005, 0, 0, 0, s * 0.066 - 0.0062, 0.2325, -0.3365));
   }
   const headCreamMesh = new THREE.Mesh(mergeGeos(headCream), matFeather);
   headGroup.add(headCreamMesh);
@@ -805,8 +805,8 @@ export function createPelican(scene) {
   beakRoot.add(pouch);
   disposables.push(pouchGeo);
   const throat = new THREE.Mesh(sphGeo(1, 14, 10), matPouch);
-  throat.position.set(0, -0.006, -0.262);
-  throat.scale.set(0.082, 0.060, 0.082);
+  throat.position.set(0, 0.006, -0.268);
+  throat.scale.set(0.074, 0.046, 0.078);
   beakRoot.add(throat);
   disposables.push(throat.geometry);
 
@@ -814,10 +814,10 @@ export function createPelican(scene) {
   const darkDetails = [];
   const beakDarkParts = [];
   for (let s = -1; s <= 1; s += 2) {
-    // 小黑豆眼睛（直径 ~0.045）
-    darkDetails.push(gTRS(sphGeo(1, 14, 10), 0.019, 0.019, 0.019, 0, 0, 0, s * 0.066, 0.258, -0.324));
-    // 嘴缝（沿喙两侧贯通到尖端）
-    beakDarkParts.push(geoBetween(s * 0.106, 0.076, -0.235, s * 0.086, 0.030, -0.530, 0.0036, 0.0032, 4));
+    // 小黑豆眼睛（藏在镜片后方：墨镜必须挡住眼睛，不再露在镜片上沿）
+    darkDetails.push(gTRS(sphGeo(1, 14, 10), 0.019, 0.019, 0.019, 0, 0, 0, s * 0.066, 0.226, -0.330));
+    // 嘴缝（沿喙两侧贯通到尖端；起点从喙根前移到喙身上，避免看起来像脸颊裂纹）
+    beakDarkParts.push(geoBetween(s * 0.101, 0.068, -0.302, s * 0.086, 0.030, -0.530, 0.0036, 0.0032, 4));
     beakDarkParts.push(geoBetween(s * 0.086, 0.030, -0.530, s * 0.036, -0.012, -0.790, 0.0032, 0.0028, 4));
     // 鼻孔（小凹陷：扁平深色点，半嵌入脊线两侧）
     beakDarkParts.push(gTRS(sphGeo(1, 8, 6), 0.0075, 0.0042, 0.011, 0, 0, 0, s * 0.030, 0.118, -0.300));
@@ -833,25 +833,25 @@ export function createPelican(scene) {
   const lensGeos = [];
   const frameGeos = [];
   for (let s = -1; s <= 1; s += 2) {
-    const lens = roundedPanelGeo(0.126, 0.072, 0.029, 0.018);
+    const lens = roundedPanelGeo(0.130, 0.078, 0.030, 0.030);
     lens.rotateY(s * 0.30);
     lens.rotateX(-0.12);
-    lens.translate(s * 0.100, 0.202, -0.342);
+    lens.translate(s * 0.100, 0.206, -0.356);
     lensGeos.push(lens);
-    // 镜框（环，明显加厚）
-    const outer = roundedRectShape(0.140, 0.086, 0.032);
-    outer.holes.push(roundedRectShape(0.118, 0.069, 0.025));
+    // 镜框（环，明显加厚；整体前移到脸面之外，看起来是"戴"上去而不是"嵌"进去）
+    const outer = roundedRectShape(0.146, 0.092, 0.034);
+    outer.holes.push(roundedRectShape(0.122, 0.073, 0.026));
     const fg = new THREE.ShapeGeometry(outer, 12);
-    bendFlatGeo(fg, 0.071, 0.020);
+    bendFlatGeo(fg, 0.073, 0.032);
     fg.rotateY(s * 0.30);
     fg.rotateX(-0.12);
-    fg.translate(s * 0.100, 0.202, -0.350);
+    fg.translate(s * 0.100, 0.206, -0.366);
     frameGeos.push(fg);
     // 镜腿：从镜框外上角斜向耳后
-    frameGeos.push(geoBetween(s * 0.166, 0.238, -0.320, s * 0.232, 0.216, -0.03, 0.0050, 0.0044, 5));
+    frameGeos.push(geoBetween(s * 0.170, 0.246, -0.336, s * 0.232, 0.216, -0.03, 0.0050, 0.0044, 5));
     frameGeos.push(geoBetween(s * 0.232, 0.216, -0.03, s * 0.222, 0.202, 0.055, 0.0048, 0.004, 5));
   }
-  frameGeos.push(gTRS(boxGeo(0.076, 0.005, 0.010), 1, 1, 1, 0, 0, 0, 0, 0.228, -0.352)); // 鼻梁连接（细）
+  frameGeos.push(gTRS(boxGeo(0.076, 0.005, 0.010), 1, 1, 1, 0, 0, 0, 0, 0.234, -0.368)); // 鼻梁连接（细）
   const lensMesh = new THREE.Mesh(mergeGeos(lensGeos), matGlasses);
   headGroup.add(lensMesh);
   const frameMesh = new THREE.Mesh(mergeGeos(frameGeos), matBlack);
@@ -936,12 +936,9 @@ export function createPelican(scene) {
   helmetGroup.add(helmetDarkMesh);
   disposables.push(helmetDarkMesh.geometry);
 
-  // 下巴扣带 + 卡扣（挂在 headGroup 下，避开头盔缩放）
-  for (let s = -1; s <= 1; s += 2) {
-    darkDetails.push(geoBetween(s * 0.235, 0.225, -0.09, s * 0.155, 0.10, -0.145, 0.0068, 0.006, 4));
-    darkDetails.push(geoBetween(s * 0.155, 0.10, -0.145, s * 0.052, 0.022, -0.19, 0.006, 0.0055, 4));
-  }
-  darkDetails.push(gTRS(sphGeo(1, 8, 6), 0.020, 0.017, 0.010, 0, 0, 0, 0, 0.020, -0.196));
+  // 下巴扣带：从正面/侧面看会在脸颊上留下两条黑线，与长喙造型冲突 → 移除，
+  // 头盔改为「无带」的简洁外观（下巴卡扣也一并去掉）。
+  void 0;
   const darkMesh = new THREE.Mesh(mergeGeos(darkDetails), matBlack);
   headGroup.add(darkMesh);
   disposables.push(darkMesh.geometry);
